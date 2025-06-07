@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Grow Control Panel
+Comment=Start, Stop und Neustart des Grow-Monitoring-Systems
+Exec=python3 /home/johagy/grow_control_panel.py
+Icon=applications-science
+Terminal=false
+Type=Application
+Categories=System;
