@@ -1,3 +1,5 @@
+#python3 ~/Poti/Belüftungs_API.py
+
 from flask import Flask, request, jsonify
 import spidev
 import time
@@ -164,13 +166,13 @@ class FanController:
 
     def set_speed(self, speed_percent):
         """
-        Set the fan speed as a percentage (15-95)
-        15% = minimum allowed speed
-        95% = maximum allowed speed
+        Set the fan speed as a percentage (25-90)
+        25% = minimum allowed speed
+        90% = maximum allowed speed
         """
         try:
             # Enforce speed limits
-            speed_percent = max(15, min(95, float(speed_percent)))
+            speed_percent = max(25, min(90, float(speed_percent)))
             
             # Map speed percentage to potentiometer value (inverted)
             # 15% speed = ~217 (reduced max resistance)
@@ -252,9 +254,9 @@ class FanController:
         integral = 0
         
         # Reduced PID constants for smoother control
-        kp = 4.0    # Proportional gain
-        ki = 0.2    # Integral gain
-        kd = 3.0    # Derivative gain
+        kp = 0.5    # Proportional gain
+        ki = 0.01    # Integral gain
+        kd = 0.05    # Derivative gain
         
         # Rate limiting parameters
         max_speed_change = 5.0  # Maximum speed change per iteration (percentage points)
@@ -296,7 +298,7 @@ class FanController:
                 adjustment = max(-max_speed_change, min(max_speed_change, adjustment))
                 
                 # Calculate new speed with limits
-                new_speed = max(15, min(95, self.current_speed + adjustment))
+                new_speed = max(25, min(90, self.current_speed + adjustment))
                 
                 # Apply speed change if significant enough but not too large
                 if abs(new_speed - self.current_speed) > 0.5:
@@ -355,7 +357,7 @@ class FanController:
             
             # Calculate VPD for sensors 1, 2, 4, and 5 (excluding sensor 3/Raum)
             vpds = []
-            for sensor_id in [1, 2, 4, 5]:  # Spinnenfarm and Schwarzebox sensors
+            for sensor_id in [1, 2]:  # Spinnenfarm and Schwarzebox Eintritt Sensors only 
                 temp_col = f'Sensor{sensor_id}_Temp'
                 hum_col = f'Sensor{sensor_id}_Hum'
                 

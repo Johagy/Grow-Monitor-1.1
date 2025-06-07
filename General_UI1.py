@@ -1,7 +1,7 @@
 #source ~/growmonitor-env/bin/activate
 #pip install dash dash-daq requests apscheduler RPi.GPIO
 #pip install pandas dash plotly dash-core-components dash-html-components dash-table requests
-#python3 ~/UI/GeneralUI3.py
+#python3 ~/UI/General_UI1.py
 import dash
 from dash import dcc, html
 import dash_daq as daq
@@ -2655,38 +2655,39 @@ def create_gauge_figure(value, min_val, max_val, ranges, title=''):
         }
     }
     
+# Gauge update callback with conditional formatting
 @app.callback(
     [
         # Spinnenfarm Eintritt (Sensor 1)
-        Output('sensor1-temp-gauge', 'figure'),      # 0
-        Output('sensor1-humidity-gauge', 'figure'),  # 1
-        Output('sensor1-vpd-gauge', 'figure'),       # 2
+        Output('sensor1-temp-gauge', 'figure'),
+        Output('sensor1-humidity-gauge', 'figure'),
+        Output('sensor1-vpd-gauge', 'figure'),
         
         # Schwarzebox Eintritt (Sensor 2)
-        Output('sensor2-temp-gauge', 'figure'),      # 3
-        Output('sensor2-humidity-gauge', 'figure'),  # 4
-        Output('sensor2-vpd-gauge', 'figure'),       # 5
+        Output('sensor2-temp-gauge', 'figure'),
+        Output('sensor2-humidity-gauge', 'figure'),
+        Output('sensor2-vpd-gauge', 'figure'),
         
         # Raum (Sensor 3)
-        Output('sensor3-temp-gauge', 'figure'),      # 6
-        Output('sensor3-humidity-gauge', 'figure'),  # 7
-        Output('sensor3-vpd-gauge', 'figure'),       # 8
+        Output('sensor3-temp-gauge', 'figure'),
+        Output('sensor3-humidity-gauge', 'figure'),
+        Output('sensor3-vpd-gauge', 'figure'),
         
         # Spinnenfarm Austritt (Sensor 4)
-        Output('sensor4-temp-gauge', 'figure'),      # 9
-        Output('sensor4-humidity-gauge', 'figure'),  # 10
+        Output('sensor4-temp-gauge', 'figure'),
+        Output('sensor4-humidity-gauge', 'figure'),
         
         # Schwarzebox Austritt (Sensor 5)
-        Output('sensor5-temp-gauge', 'figure'),      # 11
-        Output('sensor5-humidity-gauge', 'figure'),  # 12
+        Output('sensor5-temp-gauge', 'figure'),
+        Output('sensor5-humidity-gauge', 'figure'),
         
         # Soil Sensors
-        Output('soil1-moisture-gauge', 'figure'),    # 13
-        Output('soil1-temp-gauge', 'figure'),        # 14
-        Output('soil2-moisture-gauge', 'figure'),    # 15
-        Output('soil2-temp-gauge', 'figure'),        # 16
+        Output('soil1-moisture-gauge', 'figure'),
+        Output('soil1-temp-gauge', 'figure'),
+        Output('soil2-moisture-gauge', 'figure'),
+        Output('soil2-temp-gauge', 'figure'),
         
-        # Value displays
+        # Value displays with conditional formatting
         Output('sensor1-temp-value', 'children'),
         Output('sensor1-humidity-value', 'children'),
         Output('sensor1-vpd-value', 'children'),
@@ -2703,7 +2704,26 @@ def create_gauge_figure(value, min_val, max_val, ranges, title=''):
         Output('soil1-moisture-value', 'children'),
         Output('soil1-temp-value', 'children'),
         Output('soil2-moisture-value', 'children'),
-        Output('soil2-temp-value', 'children')
+        Output('soil2-temp-value', 'children'),
+        
+        # Additional: Update style for each value display
+        Output('sensor1-temp-value', 'style'),
+        Output('sensor1-humidity-value', 'style'),
+        Output('sensor1-vpd-value', 'style'),
+        Output('sensor2-temp-value', 'style'),
+        Output('sensor2-humidity-value', 'style'),
+        Output('sensor2-vpd-value', 'style'),
+        Output('sensor3-temp-value', 'style'),
+        Output('sensor3-humidity-value', 'style'),
+        Output('sensor3-vpd-value', 'style'),
+        Output('sensor4-temp-value', 'style'),
+        Output('sensor4-humidity-value', 'style'),
+        Output('sensor5-temp-value', 'style'),
+        Output('sensor5-humidity-value', 'style'),
+        Output('soil1-moisture-value', 'style'),
+        Output('soil1-temp-value', 'style'),
+        Output('soil2-moisture-value', 'style'),
+        Output('soil2-temp-value', 'style')
     ],
     [Input('interval-component', 'n_intervals')]
 )
@@ -2716,6 +2736,81 @@ def update_gauges(n_intervals):
         # Initialize gauge figures and value displays
         gauge_figures = []
         value_displays = []
+        value_styles = []
+        
+        def create_gauge_figure(value, min_val, max_val, ranges, title=''):
+            """Create a gauge figure with the specified parameters."""
+            return {
+                'data': [{
+                    'type': 'indicator',
+                    'mode': 'gauge',
+                    'value': value,
+                    'gauge': {
+                        'axis': {'range': [min_val, max_val]},
+                        'bar': {'color': "darkgray"},
+                        'steps': [
+                            {'range': [min_val, ranges[0][0]], 'color': "#FF4444"},
+                            {'range': [ranges[0][0], ranges[0][1]], 'color': "#FFA500"},
+                            {'range': [ranges[0][1], ranges[1][0]], 'color': "#44FF44"},
+                            {'range': [ranges[1][0], ranges[1][1]], 'color': "#FFA500"},
+                            {'range': [ranges[1][1], max_val], 'color': "#FF4444"}
+                        ],
+                        'threshold': {
+                            'line': {'color': "white", 'width': 2},
+                            'thickness': 0.75,
+                            'value': value
+                        }
+                    }
+                }],
+                'layout': {
+                    'height': 80,
+                    'margin': {'l': 7, 'r': 7, 't': 7, 'b': 7},
+                    'paper_bgcolor': '#1a1a1a',
+                    'font': {'color': "white", 'size': 6},
+                    'showlegend': False
+                }
+            }
+        
+        def get_value_color(value, value_type):
+            """Determine the color based on value type and range"""
+            if value_type == 'temperature':
+                if 20 <= value <= 28:
+                    return "#44FF44"  # Green (optimal)
+                elif (15 <= value < 20) or (28 < value <= 35):
+                    return "#FFA500"  # Orange (warning)
+                else:
+                    return "#FF4444"  # Red (critical)
+            elif value_type == 'humidity':
+                if 50 <= value <= 70:
+                    return "#44FF44"  # Green (optimal)
+                elif (40 <= value < 50) or (70 < value <= 80):
+                    return "#FFA500"  # Orange (warning)
+                else:
+                    return "#FF4444"  # Red (critical)
+            elif value_type == 'vpd':
+                if 1.0 <= value <= 1.2:
+                    return "#44FF44"  # Green (optimal)
+                elif (0.8 <= value < 1.0) or (1.2 < value <= 1.5):
+                    return "#FFA500"  # Orange (warning)
+                else:
+                    return "#FF4444"  # Red (critical)
+            elif value_type == 'soil_moisture':
+                if 400 <= value <= 600:
+                    return "#44FF44"  # Green (optimal)
+                elif (300 <= value < 400) or (600 < value <= 700):
+                    return "#FFA500"  # Orange (warning)
+                else:
+                    return "#FF4444"  # Red (critical)
+            else:
+                return "var(--accent)"  # Default accent color
+                
+        # Set base style for all value displays
+        base_style = {
+            'fontSize': '0.75rem',
+            'lineHeight': '1',
+            'marginLeft': 'auto',
+            'fontWeight': 'bold'
+        }
         
         if current_file:
             dht_df = load_dht22_data(current_file)
@@ -2723,17 +2818,33 @@ def update_gauges(n_intervals):
                 latest_dht = dht_df.iloc[-1]
                 
                 # Define ranges
-                temp_ranges = [(0, 15), (15, 20), (20, 28), (28, 35), (35, 40)]
-                hum_ranges = [(0, 40), (40, 50), (50, 70), (70, 80), (80, 100)]
-                vpd_ranges = [(0, 0.8), (0.8, 1.0), (1.0, 1.2), (1.2, 1.5), (1.5, 3.0)]
+                temp_ranges = [(15, 20), (28, 35)]
+                hum_ranges = [(40, 50), (70, 80)]
+                vpd_ranges = [(0.8, 1.0), (1.2, 1.5)]
                 
                 # Create gauge figures in exact order matching the callback outputs
                 for sensor_id in range(1, 6):
                     temp = latest_dht.get(f'TemperatureSensor{sensor_id}', 0)
                     hum = latest_dht.get(f'HumiditySensor{sensor_id}', 0)
                     
+                    # Get color for temperature
+                    temp_color = get_value_color(temp, 'temperature')
+                    temp_style = base_style.copy()
+                    temp_style['color'] = temp_color
+                    
+                    # Get color for humidity
+                    hum_color = get_value_color(hum, 'humidity')
+                    hum_style = base_style.copy()
+                    hum_style['color'] = hum_color
+                    
                     if sensor_id <= 3:  # Sensors 1-3 have temp, humidity, and VPD
                         vpd = calculate_vpd(temp, hum)
+                        
+                        # Get color for VPD
+                        vpd_color = get_value_color(vpd, 'vpd')
+                        vpd_style = base_style.copy()
+                        vpd_style['color'] = vpd_color
+                        
                         # Add temperature gauge
                         gauge_figures.append(create_gauge_figure(temp, 0, 40, temp_ranges))
                         # Add humidity gauge
@@ -2746,6 +2857,8 @@ def update_gauges(n_intervals):
                             f"{hum:.1f}%",
                             f"{vpd:.2f} kPa"
                         ])
+                        # Add styles for values
+                        value_styles.extend([temp_style, hum_style, vpd_style])
                     else:  # Sensors 4-5 have only temp and humidity
                         # Add temperature gauge
                         gauge_figures.append(create_gauge_figure(temp, 0, 40, temp_ranges))
@@ -2756,17 +2869,28 @@ def update_gauges(n_intervals):
                             f"{temp:.1f}°C",
                             f"{hum:.1f}%"
                         ])
+                        # Add styles for values
+                        value_styles.extend([temp_style, hum_style])
         
         # Add soil sensor gauges
         if current_soil:
             soil_df = load_soil_data(current_soil)
             if not soil_df.empty:
                 latest_soil = soil_df.iloc[-1]
-                moisture_ranges = [(0, 300), (300, 400), (400, 600), (600, 700), (700, 1000)]
+                moisture_ranges = [(300, 400), (600, 700)]
                 
                 for sensor_id in range(1, 3):
                     moisture = latest_soil.get(f'Moisture{sensor_id}', 0)
                     temp = latest_soil.get(f'Temperature{sensor_id}', 0)
+                    
+                    # Get colors for soil values
+                    moisture_color = get_value_color(moisture, 'soil_moisture')
+                    moisture_style = base_style.copy()
+                    moisture_style['color'] = moisture_color
+                    
+                    temp_color = get_value_color(temp, 'temperature')
+                    temp_style = base_style.copy()
+                    temp_style['color'] = temp_color
                     
                     # Add moisture gauge
                     gauge_figures.append(create_gauge_figure(moisture, 0, 1000, moisture_ranges))
@@ -2777,23 +2901,29 @@ def update_gauges(n_intervals):
                         f"{moisture:.0f}",
                         f"{temp:.1f}°C"
                     ])
+                    # Add styles for values
+                    value_styles.extend([moisture_style, temp_style])
         
         # Fill in any missing gauges with empty/zero values
         while len(gauge_figures) < 17:  # Total number of expected gauges
-            gauge_figures.append(create_gauge_figure(0, 0, 100, [(0, 20), (20, 40), (40, 60), (60, 80), (80, 100)]))
+            gauge_figures.append(create_gauge_figure(0, 0, 100, [(20, 40), (60, 80)]))
             
-        # Fill in any missing value displays
+        # Fill in any missing value displays and styles
         while len(value_displays) < 17:  # Total number of expected value displays
             value_displays.append("N/A")
+            value_styles.append(base_style.copy())
         
-        return gauge_figures + value_displays
+        return gauge_figures + value_displays + value_styles
         
     except Exception as e:
         print(f"Error updating gauges: {str(e)}")
-        # Return empty figures and N/A values
-        empty_figures = [create_gauge_figure(0, 0, 100, [(0, 20), (20, 40), (40, 60), (60, 80), (80, 100)])] * 17
+        # Return empty figures, N/A values, and default styles
+        empty_figures = [create_gauge_figure(0, 0, 100, [(20, 40), (60, 80)])] * 17
         empty_values = ["N/A"] * 17
-        return empty_figures + empty_values
+        default_style = {'color': 'var(--accent)', 'fontSize': '0.75rem', 'fontWeight': 'bold'}
+        default_styles = [default_style.copy()] * 17
+        return empty_figures + empty_values + default_styles
+        
 def apply_time_range_filter(df, time_range):
     """Apply time range filter to dataframe with improved error handling"""
     if time_range != 'all' and not df.empty and 'Timestamp' in df.columns:
@@ -2909,7 +3039,7 @@ def update_dashboard(selected_file, selected_soil_file, selected_power_file,
         return [go.Figure()] * 6 + [html.Div(f"Error: {str(e)}", style={'color': 'red'})]
     
 def _create_detailed_stats_cards(stats):
-    """Create statistics cards with a simplified, compact design"""
+    """Create statistics cards with conditional formatting based on value ranges"""
     stats_cards = []
     
     def _is_dict_empty(d):
@@ -2917,6 +3047,61 @@ def _create_detailed_stats_cards(stats):
         if not isinstance(d, dict):
             return True
         return not bool(d) or all(not v for v in d.values())
+    
+    def _get_formatted_value(label, value):
+        """Format value with conditional coloring based on optimal ranges"""
+        # Extract numeric value from the string
+        try:
+            if '°C' in value:  # Temperature
+                num_val = float(value.replace('°C', '').strip())
+                if 20 <= num_val <= 28:
+                    color = "#44FF44"  # Green (optimal)
+                elif (15 <= num_val < 20) or (28 < num_val <= 35):
+                    color = "#FFA500"  # Orange (warning)
+                else:
+                    color = "#FF4444"  # Red (critical)
+            elif '%' in value:  # Humidity
+                num_val = float(value.replace('%', '').strip())
+                if 50 <= num_val <= 70:
+                    color = "#44FF44"  # Green (optimal)
+                elif (40 <= num_val < 50) or (70 < num_val <= 80):
+                    color = "#FFA500"  # Orange (warning)
+                else:
+                    color = "#FF4444"  # Red (critical)
+            elif 'kPa' in value:  # VPD
+                num_val = float(value.replace('kPa', '').strip())
+                if 1.0 <= num_val <= 1.2:
+                    color = "#44FF44"  # Green (optimal)
+                elif (0.8 <= num_val < 1.0) or (1.2 < num_val <= 1.5):
+                    color = "#FFA500"  # Orange (warning)
+                else:
+                    color = "#FF4444"  # Red (critical)
+            elif 'Bodenfeuchtigkeit' in label or 'Moisture' in label:  # Soil moisture
+                # Check if it's a raw soil moisture value (no units)
+                num_val = float(value.strip())
+                if 400 <= num_val <= 600:
+                    color = "#44FF44"  # Green (optimal)
+                elif (300 <= num_val < 400) or (600 < num_val <= 700):
+                    color = "#FFA500"  # Orange (warning)
+                else:
+                    color = "#FF4444"  # Red (critical)
+            else:
+                # Default color for values that don't match known patterns
+                color = "var(--accent)"
+        except ValueError:
+            # If we can't parse the number, use default color
+            color = "var(--accent)"
+            
+        return html.Span(
+            value, 
+            style={
+                'color': color,
+                'fontWeight': 'bold',
+                'fontSize': '0.7rem',
+                'width': '50%',
+                'textAlign': 'right'
+            }
+        )
     
     def _create_section_stats(title, section_data):
         """Create a compact stats card for a section"""
@@ -2959,16 +3144,7 @@ def _create_detailed_stats_cards(stats):
                                         'width': '50%'
                                     }
                                 ),
-                                html.Span(
-                                    v, 
-                                    style={
-                                        'color': 'var(--accent)',
-                                        'fontWeight': 'bold',
-                                        'fontSize': '0.7rem',
-                                        'width': '50%',
-                                        'textAlign': 'right'
-                                    }
-                                )
+                                _get_formatted_value(category, v)
                             ], style={
                                 'display': 'flex', 
                                 'justifyContent': 'space-between',
@@ -3006,7 +3182,6 @@ def _create_detailed_stats_cards(stats):
                                 'fontSize': '0.9rem',
                                 'marginBottom': '0.3rem',
                                 'textAlign': 'center',
-                                # Removed the border-bottom line
                                 'paddingBottom': '0.2rem'
                             }
                         )
@@ -3026,7 +3201,6 @@ def _create_detailed_stats_cards(stats):
                     'fontSize': '1rem',
                     'marginBottom': '0.5rem', 
                     'textAlign': 'center',
-                    # Removed the border-bottom line
                     'paddingBottom': '0.2rem'
                 }
             ),
@@ -3047,6 +3221,7 @@ def _create_detailed_stats_cards(stats):
             stats_cards.append(section_card)
     
     return stats_cards
+    
 @app.callback(
     [Output('light-schedule-status', 'children'),
      Output('light2-schedule-status', 'children')],

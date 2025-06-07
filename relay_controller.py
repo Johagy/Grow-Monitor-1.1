@@ -1,3 +1,5 @@
+#python3 ~/relay/relay_controller.py
+
 from flask import Flask, request, jsonify
 import gpiod
 from apscheduler.schedulers.background import BackgroundScheduler
